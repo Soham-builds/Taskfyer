@@ -187,16 +187,14 @@ export const userLoginStatus = asyncHandler(async (req, res) => {
   const token = req.cookies.token;
 
   if (!token) {
-    // 401 Unauthorized
-    res.status(401).json({ message: "Not authorized, please login!" });
+    return res.status(200).json(false); // return boolean, not error
   }
-  // verify the token
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-  if (decoded) {
-    res.status(200).json(true);
-  } else {
-    res.status(401).json(false);
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded) return res.status(200).json(true);
+  } catch (error) {
+    return res.status(200).json(false);
   }
 });
 
