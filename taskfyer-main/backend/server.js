@@ -12,37 +12,35 @@ const app = express();
 const port = process.env.PORT || 8000;
 
 // ======================
-// ✅ 1. CORS SETUP (Critical Fix)
+// ✅ CORS CONFIG
 // ======================
-const allowedOrigins = [
-  "https://taskfyer-xi-three.vercel.app", // your live frontend (Vercel)
-  "http://localhost:3000", // local development
-];
-
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow no-origin requests (Postman, curl, etc.)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (
+        !origin || // allow server-to-server or curl
+        origin === "http://localhost:3000" ||
+        /^https:\/\/taskfyer.*\.vercel\.app$/.test(origin)
+      ) {
         callback(null, true);
       } else {
         console.log("❌ CORS blocked:", origin);
         callback(new Error("CORS not allowed for origin: " + origin));
       }
     },
-    credentials: true, // allow cookies, tokens
+    credentials: true,
   })
 );
 
 // ======================
-// ✅ 2. MIDDLEWARES
+// ✅ BODY PARSERS & COOKIES
 // ======================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // ======================
-// ✅ 3. ROUTES AUTO-LOADING
+// ✅ AUTO-LOAD ROUTES
 // ======================
 const routeFiles = fs.readdirSync("./src/routes");
 for (const file of routeFiles) {
@@ -56,17 +54,19 @@ for (const file of routeFiles) {
 }
 
 // ======================
-// ✅ 4. ERROR HANDLER (MUST BE LAST)
+// ✅ ERROR HANDLER
 // ======================
 app.use(errorHandler);
 
 // ======================
-// ✅ 5. DATABASE + SERVER START
+// ✅ SERVER START
 // ======================
 const startServer = async () => {
   try {
     await connect();
-    app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
+    app.listen(port, () =>
+      console.log(`🚀 Server running on port ${port}`)
+    );
   } catch (error) {
     console.error("❌ Failed to start server:", error.message);
     process.exit(1);
