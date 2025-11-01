@@ -89,24 +89,29 @@ export const UserContextProvider = ({ children }) => {
 
   // get user logged-in status
   const userLoginStatus = async () => {
-    let loggedIn = false;
-    try {
-      const res = await axios.get(`${serverUrl}/api/v1/login-status`, {
-        withCredentials: true,
-      });
+  try {
+    const res = await axios.get(`${serverUrl}/api/v1/login-status`, {
+      withCredentials: true,
+    });
 
-      loggedIn = !!res.data;
-      setLoading(false);
-
-      if (!loggedIn) {
-        router.push("/login");
-      }
-    } catch (error) {
-      console.log("Error getting user login status", error);
+    // API returns true or false
+    if (res.data === true) {
+      return true;
+    } else {
+      setUser({});
+      localStorage.removeItem("user");
+      router.push("/login");
+      return false;
     }
+  } catch (error) {
+    console.log("Error checking login status", error);
+    setUser({});
+    localStorage.removeItem("user");
+    router.push("/login");
+    return false;
+  }
+};
 
-    return loggedIn;
-  };
 
   // logout user
   const logoutUser = async () => {
@@ -320,18 +325,23 @@ export const UserContextProvider = ({ children }) => {
 
   // ✅ Fixed redirect logic
   useEffect(() => {
-    const loginStatusGetUser = async () => {
-      const publicRoutes = ["/login", "/register", "/forgot-password"];
-      if (publicRoutes.includes(window.location.pathname)) return;
+  const checkAuth = async () => {
+    const publicRoutes = ["/login", "/register", "/forgot-password"];
+    const path = window.location.pathname;
 
-      const isLoggedIn = await userLoginStatus();
-      if (isLoggedIn) {
-        await getUser();
-      }
-    };
+    if (publicRoutes.includes(path)) return;
 
-    loginStatusGetUser();
-  }, []);
+    const isLoggedIn = await userLoginStatus();
+    if (isLoggedIn) {
+      await getUser();
+    } else {
+      router.push("/login");
+    }
+  };
+
+  checkAuth();
+}, []);
+
 
   useEffect(() => {
     if (user.role === "admin") {
