@@ -1,10 +1,13 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import connect from "./src/db/connect.js";
 import cookieParser from "cookie-parser";
-import fs from "node:fs";
+import connect from "./src/db/connect.js";
 import errorHandler from "./src/helpers/errorhandler.js";
+
+// ✅ Import your routes explicitly
+import userRoutes from "./src/routes/userRoutes.js";
+import taskRoutes from "./src/routes/taskRoutes.js";
 
 dotenv.config();
 
@@ -12,54 +15,38 @@ const app = express();
 const port = process.env.PORT || 8000;
 
 // ======================
-// ✅ CORS CONFIG
+// ✅ 1. CORS CONFIG
 // ======================
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (
-        !origin || // allow server-to-server or curl
-        origin === "http://localhost:3000" ||
-        /^https:\/\/taskfyer.*\.vercel\.app$/.test(origin)
-      ) {
-        callback(null, true);
-      } else {
-        console.log("❌ CORS blocked:", origin);
-        callback(new Error("CORS not allowed for origin: " + origin));
-      }
-    },
-    credentials: true,
+    origin: [
+      "http://localhost:3000", // local dev
+      "https://taskfyer-xi-three.vercel.app/", // your Vercel frontend
+    ],
+    credentials: true, // allow cookies, tokens, etc.
   })
 );
 
 // ======================
-// ✅ BODY PARSERS & COOKIES
+// ✅ 2. BODY PARSERS & COOKIES
 // ======================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // ======================
-// ✅ AUTO-LOAD ROUTES
+// ✅ 3. ROUTES
 // ======================
-const routeFiles = fs.readdirSync("./src/routes");
-for (const file of routeFiles) {
-  try {
-    const route = await import(`./src/routes/${file}`);
-    app.use("/api/v1", route.default);
-    console.log(`📦 Route loaded: ${file}`);
-  } catch (err) {
-    console.error(`❌ Failed to load route file (${file}):`, err.message);
-  }
-}
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/tasks", taskRoutes);
 
 // ======================
-// ✅ ERROR HANDLER
+// ✅ 4. ERROR HANDLER
 // ======================
 app.use(errorHandler);
 
 // ======================
-// ✅ SERVER START
+// ✅ 5. SERVER START
 // ======================
 const startServer = async () => {
   try {
